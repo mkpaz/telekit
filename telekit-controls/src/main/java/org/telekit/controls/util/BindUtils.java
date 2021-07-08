@@ -5,10 +5,13 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.value.ObservableObjectValue;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleGroup;
 
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
@@ -120,6 +123,26 @@ public final class BindUtils {
                                               Collection<E> c,
                                               Function<E, E> converter) {
         return ofPredicate(property, val -> c != null && c.contains(val), converter);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Property bindings                                                       //
+    ///////////////////////////////////////////////////////////////////////////
+
+    @SuppressWarnings("unchecked")
+    public static <T> void bindToggleGroup(ToggleGroup toggleGroup, ObjectProperty<T> property) {
+        for (Toggle toggle : toggleGroup.getToggles()) {
+            if (toggle.getUserData() == null) {
+                throw new IllegalArgumentException("The ToggleGroup contains at least one Toggle without user data");
+            }
+
+            if (Objects.equals(property.get(), toggle.getUserData())) {
+                toggleGroup.selectToggle(toggle);
+                break;
+            }
+        }
+
+        toggleGroup.selectedToggleProperty().addListener((obs, old, value) -> property.set((T) value.getUserData()));
     }
 
     ///////////////////////////////////////////////////////////////////////////

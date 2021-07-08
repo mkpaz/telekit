@@ -181,7 +181,7 @@ public class Executor extends Task<ObservableList<CompletedRequest>> {
 
     private void configureProxy() {
         if (proxy == null || !proxy.isValid()) { return; }
-        httpClientBuilder.proxy(proxy.getUri(), proxy.passwordAuthentication());
+        httpClientBuilder.proxy(proxy.getUri(), proxy.getPasswordAuthentication());
     }
 
     private void configureAuth(Map<String, String> userHeaders) {

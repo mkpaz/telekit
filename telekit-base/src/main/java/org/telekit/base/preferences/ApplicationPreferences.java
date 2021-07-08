@@ -24,7 +24,6 @@ import java.util.prefs.Preferences;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 import static org.telekit.base.Env.CONFIG_DIR;
 import static org.telekit.base.Env.WINDOW_MAXIMIZED;
-import static org.telekit.base.domain.Proxy.NO_PROXY;
 import static org.telekit.base.i18n.BaseMessages.MGG_UNABLE_TO_LOAD_DATA_FROM_FILE;
 import static org.telekit.base.i18n.BaseMessages.MGG_UNABLE_TO_SAVE_DATA_TO_FILE;
 import static org.telekit.base.util.CommonUtils.hush;
@@ -35,7 +34,6 @@ import static org.telekit.base.util.FileUtils.*;
 public class ApplicationPreferences {
 
     private Language language = Language.EN;
-    private boolean systemTray = false;
     private Proxy proxy;
     private Security security = new Security();
 
@@ -48,45 +46,19 @@ public class ApplicationPreferences {
 
     public ApplicationPreferences() {}
 
-    public Language getLanguage() {
-        return language;
-    }
+    //@formatter:off
+    public Language getLanguage() { return language; }
+    public void setLanguage(Language language) { this.language = defaultIfNull(language, Language.EN); }
 
-    public void setLanguage(Language language) {
-        this.language = language != null ? language : Language.EN;
-    }
+    public Proxy getProxy() { return proxy; }
+    public void setProxy(Proxy proxy) { this.proxy = proxy; }
 
-    public boolean isSystemTray() {
-        return systemTray;
-    }
+    public Security getSecurity() { return security; }
+    public void setSecurity(Security security) { this.security = defaultIfNull(security, new Security()); }
 
-    public void setSystemTray(boolean systemTray) {
-        this.systemTray = systemTray;
-    }
-
-    public Proxy getProxy() {
-        return proxy != null ? proxy : NO_PROXY;
-    }
-
-    public void setProxy(Proxy proxy) {
-        this.proxy = NO_PROXY.equals(proxy) ? null : proxy;
-    }
-
-    public Security getSecurity() {
-        return security;
-    }
-
-    public void setSecurity(Security security) {
-        this.security = security != null ? security : new Security();
-    }
-
-    public Set<String> getDisabledPlugins() {
-        return disabledPlugins;
-    }
-
-    public void setDisabledPlugins(Set<String> disabledPlugins) {
-        this.disabledPlugins = disabledPlugins != null ? disabledPlugins : new HashSet<>();
-    }
+    public Set<String> getDisabledPlugins() { return disabledPlugins; }
+    public void setDisabledPlugins(Set<String> disabledPlugins) { this.disabledPlugins = defaultIfNull(disabledPlugins, new HashSet<>()); }
+    //@formatter:on
 
     @JsonIgnore
     public Locale getLocale() {
@@ -95,29 +67,24 @@ public class ApplicationPreferences {
     }
 
     @JsonIgnore
-    public boolean isDirty() {
-        return dirty;
-    }
+    public boolean isDirty() { return dirty; }
 
-    public void setDirty() {
-        this.dirty = true;
-    }
+    public void setDirty() { this.dirty = true; }
 
-    public void resetDirty() {
-        this.dirty = false;
-    }
+    public void resetDirty() { this.dirty = false; }
 
     @Override
     public String toString() {
         return "UserPreferences{" +
                 "language=" + language +
-                ", systemTray=" + systemTray +
                 ", proxy=" + proxy +
                 ", security=" + security +
                 ", disabledPlugins=" + disabledPlugins +
                 '}';
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    //  System preferences                                                   //
     ///////////////////////////////////////////////////////////////////////////
 
     private final Preferences systemPreferences = Preferences.userRoot().node(Env.APP_NAME);

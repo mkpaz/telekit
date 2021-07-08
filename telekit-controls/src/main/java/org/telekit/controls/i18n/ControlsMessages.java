@@ -41,6 +41,7 @@ public interface ControlsMessages {
     String PREFERENCES="Preferences";
     String PREFIX="Prefix";
     String PREVIEW="Preview";
+    String PORT="Port";
     String RANDOM="Random";
     String RESULT="Result";
     String SEARCH="Search";

@@ -1,55 +1,67 @@
 package org.telekit.base.domain;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jetbrains.annotations.Nullable;
 import org.telekit.base.net.Scheme;
 
 import java.net.PasswordAuthentication;
 import java.net.URI;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
+import static org.apache.commons.lang3.StringUtils.equalsIgnoreCase;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.telekit.base.util.CommonUtils.map;
 
 public class Proxy {
 
-    public static final Proxy NO_PROXY = Proxy.of(URI.create("system://127.0.0.1"));
+    public static final Set<Scheme> SUPPORTED_SCHEMES = Set.of(Scheme.HTTP);
+    public static final int MODE_NO_PROXY = 0;
+    public static final int MODE_MANUAL = 1;
 
-    private final URI uri;
+    private int mode = MODE_NO_PROXY;
+    private URI uri;
     private String username;
     private char[] password;
+    private List<String> exceptions = new ArrayList<>();
 
-    @JsonCreator
-    public Proxy(@JsonProperty("uri") URI uri) {
-        this.uri = Objects.requireNonNull(uri);
-    }
+    public Proxy() {}
 
     public Proxy(Proxy proxy) {
+        this.mode = proxy.getMode();
         this.uri = proxy.getUri();
         this.username = proxy.getUsername();
         this.password = proxy.getPassword();
+        this.exceptions = proxy.getExceptions();
     }
 
-    public URI getUri() {
-        return uri;
-    }
+    //@formatter:off
+    public URI getUri() { return uri; }
+    public void setUri(URI uri) { this.uri = uri; }
 
-    public @Nullable String getUsername() {
-        return username;
-    }
+    public int getMode() { return mode; }
+    public void setMode(int mode) { this.mode = mode; }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 
-    public char[] getPassword() {
-        return password;
-    }
+    public char[] getPassword() { return password; }
+    public void setPassword(char[] password) { this.password = password; }
 
-    public void setPassword(char[] password) {
-        this.password = password;
-    }
+    public List<String> getExceptions() { return exceptions; }
+    public void setExceptions(List<String> exceptions) { this.exceptions = exceptions; }
+    //@formatter:on
+
+    @JsonIgnore
+    public @Nullable String getScheme() { return map(uri, URI::getScheme); }
+
+    @JsonIgnore
+    public @Nullable String getHost() { return map(uri, URI::getHost); }
+
+    @JsonIgnore
+    public int getPort() { return map(uri, u -> Math.max(uri.getPort(), 0), 0); }
 
     @JsonIgnore
     public @Nullable String getPasswordAsString() {
@@ -57,66 +69,34 @@ public class Proxy {
     }
 
     @JsonIgnore
-    public @Nullable UsernamePasswordCredential credential() {
+    public @Nullable UsernamePasswordCredential getCredential() {
         return hasUsername() && hasPassword() ? new UsernamePasswordCredential(username, password) : null;
     }
 
     @JsonIgnore
-    public @Nullable PasswordAuthentication passwordAuthentication() {
+    public @Nullable PasswordAuthentication getPasswordAuthentication() {
         return hasUsername() && hasPassword() ? new PasswordAuthentication(username, password) : null;
     }
 
     @JsonIgnore
     public boolean isValid() {
-        return Scheme.collection(Scheme.HTTP, Scheme.HTTPS).contains(uri.getScheme()) && !NO_PROXY.equals(this);
+        return (mode == MODE_NO_PROXY) ||
+                (mode == MODE_MANUAL && uri != null && SUPPORTED_SCHEMES.stream()
+                        .anyMatch(scheme -> equalsIgnoreCase(scheme.toString(), uri.getScheme())));
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (o == null || getClass() != o.getClass()) { return false; }
-        Proxy proxy = (Proxy) o;
-        return uri.equals(proxy.uri);
-    }
+    private boolean hasUsername() { return isNotBlank(username); }
 
-    @Override
-    public int hashCode() {
-        return uri.hashCode();
-    }
+    private boolean hasPassword() { return password != null && password.length > 0; }
 
     @Override
     public String toString() {
         return "Proxy{" +
-                "uri='" + uri + '\'' +
+                "mode=" + mode +
+                ", uri=" + uri +
                 ", username='" + username + '\'' +
-                ", password='********'" +
+                ", password=" + Arrays.toString(password) +
+                ", exceptions=" + exceptions +
                 '}';
-    }
-
-    private boolean hasUsername() {
-        return isNotBlank(username);
-    }
-
-    private boolean hasPassword() {
-        return password != null && password.length > 0;
-    }
-
-    public static Proxy of(URI uri) {
-        return of(uri, parseUserInfo(uri.getUserInfo()));
-    }
-
-    public static Proxy of(URI uri, @Nullable UsernamePasswordCredential credential) {
-        Proxy proxy = new Proxy(uri);
-        if (credential != null) {
-            proxy.setUsername(credential.getUsername());
-            proxy.setPassword(credential.getPassword());
-        }
-        return proxy;
-    }
-
-    private static @Nullable UsernamePasswordCredential parseUserInfo(String userInfo) {
-        if (userInfo == null) { return null; }
-        String[] userPass = userInfo.split(":");
-        return userPass.length == 2 ? UsernamePasswordCredential.of(userPass[0], userPass[1]) : null;
     }
 }

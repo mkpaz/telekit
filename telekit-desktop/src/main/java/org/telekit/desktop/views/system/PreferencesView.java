@@ -60,7 +60,7 @@ public class PreferencesView extends OverlayDialog implements Initializable, Vie
         setContent(tabs);
         setTitle(t(PREFERENCES));
         setPrefWidth(600);
-        setPrefHeight(480);
+        setPrefHeight(500);
     }
 
     @Override

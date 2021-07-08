@@ -1,18 +1,18 @@
 package org.telekit.desktop.views.system;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
 import org.telekit.base.desktop.mvvm.*;
 import org.telekit.base.di.Initializable;
 import org.telekit.base.domain.Proxy;
-import org.telekit.base.domain.UsernamePasswordCredential;
-import org.telekit.base.domain.exception.InvalidInputException;
 import org.telekit.base.domain.exception.TelekitException;
 import org.telekit.base.event.DefaultEventBus;
 import org.telekit.base.i18n.I18n;
-import org.telekit.base.net.UriUtils;
+import org.telekit.base.net.Scheme;
 import org.telekit.base.plugin.internal.PluginBox;
 import org.telekit.base.plugin.internal.PluginException;
 import org.telekit.base.plugin.internal.PluginManager;
@@ -25,16 +25,17 @@ import org.telekit.desktop.event.PendingRestartEvent;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Objects;
 
 import static org.apache.commons.lang3.ClassUtils.getCanonicalName;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
-import static org.telekit.base.domain.Proxy.NO_PROXY;
 import static org.telekit.base.i18n.BaseMessages.MSG_INVALID_PARAM;
 import static org.telekit.base.plugin.internal.PluginState.DISABLED;
 import static org.telekit.base.plugin.internal.PluginState.UNINSTALLED;
+import static org.telekit.base.util.CSVUtils.COMMA_OR_SEMICOLON;
 
 @Singleton
 public class PreferencesViewModel implements Initializable, ViewModel {
@@ -55,37 +56,49 @@ public class PreferencesViewModel implements Initializable, ViewModel {
     @Override
     public void initialize() {
         language.set(preferences.getLanguage());
-
-        Proxy proxy = preferences.getProxy();
-        if (!NO_PROXY.equals(proxy)) {
-            proxyUrl.set(preferences.getProxy().getUri().toString());
-            proxyUsername.set(preferences.getProxy().getUsername());
-            proxyPassword.set(preferences.getProxy().getPasswordAsString());
-        }
+        setPropertiesFromProxy(preferences.getProxy());
 
         plugins.getFilteredList().setPredicate(p -> p.getState() != UNINSTALLED);
         updatePluginsList();
     }
 
-    private Proxy getProxyFromProperties() {
-        String proxyUrl = proxyUrlProperty().get();
-        if (isBlank(proxyUrl)) { return null; }
+    private void setPropertiesFromProxy(Proxy proxy) {
+        proxyMode.set(proxy.getMode());
+        proxyScheme.set(Scheme.HTTP);
+        proxyHost.set(proxy.getHost());
+        proxyPort.set(proxy.getPort());
+        proxyUsername.set(proxy.getUsername());
+        proxyPassword.set(proxy.getPasswordAsString());
+        proxyExceptions.set(String.join(";", proxy.getExceptions()));
+    }
 
-        URI uri;
-        try {
-            uri = UriUtils.parse(proxyUrl.trim());
-        } catch (InvalidInputException e) {
-            throw new TelekitException(I18n.t(MSG_INVALID_PARAM, proxyUrl));
+    private Proxy getProxyFromProperties() {
+        Proxy proxy = new Proxy();
+        proxy.setMode(proxyMode.get());
+
+        if (isNotBlank(proxyHost.get())) {
+            try {
+                proxy.setUri(new URI(proxyScheme.get().toString(),
+                                     null, proxyHost.get(), proxyPort.get(),
+                                     null, null, null
+                ));
+            } catch (URISyntaxException e) {
+                throw new TelekitException(I18n.t(MSG_INVALID_PARAM, proxyHost.get()));
+            }
         }
 
-        UsernamePasswordCredential credential = null;
+        if (isNotBlank(proxyExceptions.get())) {
+            proxy.setExceptions(Arrays.asList(proxyExceptions.get().split(COMMA_OR_SEMICOLON)));
+        }
+
         String username = proxyUsername.get();
         String password = proxyPassword.get();
         if (isNotBlank(username) && isNotBlank(password)) {
-            credential = UsernamePasswordCredential.of(username, password);
+            proxy.setUsername(username);
+            proxy.setPassword(password.toCharArray());
         }
 
-        return Proxy.of(uri, credential);
+        return proxy;
     }
 
     private void updatePluginsList() {
@@ -102,23 +115,35 @@ public class PreferencesViewModel implements Initializable, ViewModel {
     ///////////////////////////////////////////////////////////////////////////
 
     //@formatter:off
-    private final SimpleObjectProperty<Language> language = new SimpleObjectProperty<>(this, "language");
-    public SimpleObjectProperty<Language> languageProperty() { return language; }
+    private final ObjectProperty<Language> language = new SimpleObjectProperty<>(this, "language");
+    public ObjectProperty<Language> languageProperty() { return language; }
 
-    private final SimpleStringProperty proxyUrl = new SimpleStringProperty(this, "proxyUrl");
-    public SimpleStringProperty proxyUrlProperty() { return proxyUrl; }
+    private final ObjectProperty<Integer> proxyMode = new SimpleObjectProperty<>(this, "proxyMode");
+    public ObjectProperty<Integer> proxyModeProperty() { return proxyMode; }
 
-    private final SimpleStringProperty proxyUsername = new SimpleStringProperty(this, "proxyUsername");
-    public SimpleStringProperty proxyUsernameProperty() { return proxyUsername; }
+    private final ObjectProperty<Scheme> proxyScheme = new SimpleObjectProperty<>(this, "proxyScheme");
+    public ObjectProperty<Scheme> proxySchemeProperty() { return proxyScheme; }
 
-    private final SimpleStringProperty proxyPassword = new SimpleStringProperty(this, "proxyPassword");
-    public SimpleStringProperty proxyPasswordProperty() { return proxyPassword; }
+    private final StringProperty proxyHost = new SimpleStringProperty(this, "proxyHost");
+    public StringProperty proxyHostProperty() { return proxyHost; }
+
+    private final ObjectProperty<Integer> proxyPort = new SimpleObjectProperty<>(this, "proxyPort");
+    public ObjectProperty<Integer> proxyPortProperty() { return proxyPort; }
+
+    private final StringProperty proxyUsername = new SimpleStringProperty(this, "proxyUsername");
+    public StringProperty proxyUsernameProperty() { return proxyUsername; }
+
+    private final StringProperty proxyPassword = new SimpleStringProperty(this, "proxyPassword");
+    public StringProperty proxyPasswordProperty() { return proxyPassword; }
+
+    private final StringProperty proxyExceptions = new SimpleStringProperty(this, "proxyExceptions");
+    public StringProperty proxyExceptionsProperty() { return proxyExceptions; }
 
     private final TransformationListHandle<PluginBox> plugins = new TransformationListHandle<>();
     public ObservableList<PluginBox> getPlugins() { return plugins.getSortedList(); }
 
-    private final SimpleObjectProperty<PluginBox> selectedPlugin = new SimpleObjectProperty<>(this, "selectedPlugin");
-    public SimpleObjectProperty<PluginBox> selectedPluginProperty() { return selectedPlugin; }
+    private final ObjectProperty<PluginBox> selectedPlugin = new SimpleObjectProperty<>(this, "selectedPlugin");
+    public ObjectProperty<PluginBox> selectedPluginProperty() { return selectedPlugin; }
     //@formatter:on
 
     ///////////////////////////////////////////////////////////////////////////

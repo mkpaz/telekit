@@ -13,6 +13,8 @@ public interface DesktopMessages extends BaseMessages, ControlsMessages {
     String SYSTEM_RESTART_REQUIRED = "system.RestartRequired";
 
     String PREFERENCES_GENERAL = "preferences.General";
+    String PREFERENCES_MANUAL_PROXY_CONFIGURATION = "preferences.ManualProxyConfiguration";
+    String PREFERENCES_NO_PROXY = "preferences.NoProxy";
     String PREFERENCES_PROXY = "preferences.Proxy";
     String PREFERENCES_REQUIRES_RESTART = "preferences.requires-restart";
 
@@ -27,6 +29,7 @@ public interface DesktopMessages extends BaseMessages, ControlsMessages {
     String TOOLS_DOCUMENT_START = "tools.DocumentStart";
     String TOOLS_DOCUMENT_END = "tools.DocumentEnd";
     String TOOLS_ELEMENT = "tools.Element";
+    String TOOLS_EXCEPTIONS = "tools.Exceptions";
     String TOOLS_LIST_FOR_REPLACEMENT = "tools.ListForReplacement";
     String TOOLS_SAVE_AS = "tools.SaveAs";
     String TOOLS_SHOW_SAVE_DIALOG = "tools.ShowSaveDialog";

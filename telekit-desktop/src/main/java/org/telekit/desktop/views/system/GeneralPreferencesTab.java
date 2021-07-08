@@ -1,39 +1,51 @@
 package org.telekit.desktop.views.system;
 
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
+import javafx.collections.FXCollections;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.util.StringConverter;
+import org.telekit.base.domain.Proxy;
+import org.telekit.base.net.Scheme;
 import org.telekit.base.preferences.Language;
 import org.telekit.controls.custom.RevealablePasswordField;
-import org.telekit.controls.custom.ToggleIcon;
 import org.telekit.controls.util.Containers;
 import org.telekit.controls.util.Controls;
+import org.telekit.controls.util.IntegerStringConverter;
 import org.telekit.desktop.i18n.DesktopMessages;
 
 import java.util.Arrays;
 
+import static javafx.geometry.Pos.CENTER_LEFT;
 import static org.telekit.base.i18n.I18n.t;
+import static org.telekit.controls.i18n.ControlsMessages.EXAMPLE;
+import static org.telekit.controls.i18n.ControlsMessages.PORT;
+import static org.telekit.controls.util.BindUtils.bindToggleGroup;
 import static org.telekit.controls.util.Containers.*;
 import static org.telekit.controls.util.Controls.gridLabel;
+import static org.telekit.desktop.i18n.DesktopMessages.*;
 import static org.telekit.desktop.views.system.PreferencesView.RESTART_MARK;
 
 public class GeneralPreferencesTab extends Tab {
 
     ComboBox<Language> langChoice;
-    TextField proxyUrlText;
-    TextField proxyUsernameText;
 
+    ToggleGroup proxyModeToggle;
+    RadioButton noProxyToggle;
+    RadioButton manualProxyToggle;
+
+    ComboBox<Scheme> proxySchemeChoice;
+    TextField proxyHostText;
+    Spinner<Integer> proxyPortSpinner;
+    TextField proxyUsernameText;
     RevealablePasswordField proxyPasswordText;
-    ToggleIcon proxyPasswordToggle;
-//    TextField proxyPasswordText;
+    TextArea proxyExceptionsText;
 
     private final PreferencesViewModel model;
 
@@ -62,18 +74,73 @@ public class GeneralPreferencesTab extends Tab {
         });
         langChoice.valueProperty().bindBidirectional(model.languageProperty());
 
+        // PROXY
+
         HBox proxyGroupHeader = Containers.create(HBox::new, "group-header");
         proxyGroupHeader.setAlignment(Pos.BASELINE_LEFT);
         proxyGroupHeader.getChildren().addAll(new Label(t(DesktopMessages.PREFERENCES_PROXY)), horizontalSeparator());
 
-        proxyUrlText = new TextField();
-        proxyUrlText.textProperty().bindBidirectional(model.proxyUrlProperty());
+        proxyModeToggle = new ToggleGroup();
+
+        noProxyToggle = new RadioButton(t(PREFERENCES_NO_PROXY));
+        noProxyToggle.setToggleGroup(proxyModeToggle);
+        noProxyToggle.setUserData(Proxy.MODE_NO_PROXY);
+
+        manualProxyToggle = new RadioButton(t(PREFERENCES_MANUAL_PROXY_CONFIGURATION));
+        manualProxyToggle.setToggleGroup(proxyModeToggle);
+        manualProxyToggle.setPadding(new Insets(0, 0, 5, 0));
+        manualProxyToggle.setUserData(Proxy.MODE_MANUAL);
+
+        BooleanBinding disableManualSettingsBinding = Bindings.createBooleanBinding(
+                () -> proxyModeToggle.getSelectedToggle() == noProxyToggle, proxyModeToggle.selectedToggleProperty()
+        );
+        bindToggleGroup(proxyModeToggle, model.proxyModeProperty());
+
+        // MANUAL PROXY
+
+        proxySchemeChoice = new ComboBox<>(FXCollections.observableArrayList(Proxy.SUPPORTED_SCHEMES));
+        proxySchemeChoice.setPrefWidth(100);
+        proxySchemeChoice.valueProperty().bindBidirectional(model.proxySchemeProperty());
+        proxySchemeChoice.disableProperty().bind(disableManualSettingsBinding);
+
+        proxyHostText = new TextField();
+        HBox.setHgrow(proxyHostText, Priority.ALWAYS);
+        proxyHostText.textProperty().bindBidirectional(model.proxyHostProperty());
+        proxyHostText.disableProperty().bind(disableManualSettingsBinding);
+
+        Label proxyPortLabel = new Label(t(PORT));
+        proxyPortLabel.setPadding(new Insets(0, 5, 0, 5));
+
+        proxyPortSpinner = new Spinner<>(0, 65535, 3128);
+        proxyPortSpinner.setPrefWidth(100);
+        proxyPortSpinner.setEditable(true);
+        IntegerStringConverter.createFor(proxyPortSpinner);
+        proxyPortSpinner.getValueFactory().valueProperty().bindBidirectional(model.proxyPortProperty());
+        proxyPortSpinner.disableProperty().bind(disableManualSettingsBinding);
+
+        HBox proxyUrlBox = Containers.hbox(0, CENTER_LEFT, Insets.EMPTY);
+        proxyUrlBox.getChildren().setAll(
+                proxySchemeChoice,
+                proxyHostText,
+                proxyPortLabel,
+                proxyPortSpinner
+        );
 
         proxyUsernameText = new TextField();
         proxyUsernameText.textProperty().bindBidirectional(model.proxyUsernameProperty());
+        proxyUsernameText.disableProperty().bind(disableManualSettingsBinding);
 
         proxyPasswordText = Controls.passwordField();
         proxyPasswordText.textProperty().bindBidirectional(model.proxyPasswordProperty());
+        proxyPasswordText.disableProperty().bind(disableManualSettingsBinding);
+
+        proxyExceptionsText = Controls.create(TextArea::new, "monospace");
+        proxyExceptionsText.setWrapText(true);
+        proxyExceptionsText.setPrefHeight(50);
+        proxyExceptionsText.textProperty().bindBidirectional(model.proxyExceptionsProperty());
+        proxyExceptionsText.disableProperty().bind(disableManualSettingsBinding);
+
+        Label proxyExceptionsExample = new Label(t(EXAMPLE) + ": *.domain.com, 192.168.*");
 
         // GRID
 
@@ -84,14 +151,22 @@ public class GeneralPreferencesTab extends Tab {
 
         grid.add(proxyGroupHeader, 0, 1, GridPane.REMAINING, 1);
 
-        grid.add(gridLabel("URL", HPos.RIGHT, proxyUrlText), 1, 2);
-        grid.add(proxyUrlText, 2, 2);
+        grid.add(noProxyToggle, 1, 2, GridPane.REMAINING, 1);
+        grid.add(manualProxyToggle, 1, 3, GridPane.REMAINING, 1);
 
-        grid.add(gridLabel(t(DesktopMessages.USERNAME), HPos.RIGHT, proxyUsernameText), 1, 3);
-        grid.add(proxyUsernameText, 2, 3);
+        grid.add(gridLabel("URL", HPos.RIGHT, proxyHostText), 1, 4);
+        grid.add(proxyUrlBox, 2, 4);
 
-        grid.add(gridLabel(t(DesktopMessages.PASSWORD), HPos.RIGHT, proxyPasswordText), 1, 4);
-        grid.add(proxyPasswordText.getParent(), 2, 4);
+        grid.add(gridLabel(t(DesktopMessages.USERNAME), HPos.RIGHT, proxyUsernameText), 1, 5);
+        grid.add(proxyUsernameText, 2, 5);
+
+        grid.add(gridLabel(t(DesktopMessages.PASSWORD), HPos.RIGHT, proxyPasswordText), 1, 6);
+        grid.add(proxyPasswordText.getParent(), 2, 6);
+
+        grid.add(gridLabel(t(TOOLS_EXCEPTIONS), HPos.RIGHT, proxyExceptionsText), 1, 7);
+        grid.add(proxyExceptionsText, 2, 7);
+
+        grid.add(proxyExceptionsExample, 2, 8);
 
         grid.getColumnConstraints().addAll(
                 columnConstraints(10, Priority.NEVER),  // imitates padding for nested properties
