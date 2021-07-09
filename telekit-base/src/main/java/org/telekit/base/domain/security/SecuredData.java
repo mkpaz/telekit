@@ -1,4 +1,4 @@
-package org.telekit.base.domain;
+package org.telekit.base.domain.security;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.telekit.base.service.EncryptionService;

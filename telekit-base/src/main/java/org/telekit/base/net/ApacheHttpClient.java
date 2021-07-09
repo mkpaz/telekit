@@ -3,10 +3,10 @@ package org.telekit.base.net;
 import org.apache.hc.client5.http.auth.AuthCache;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.CredentialsStore;
-import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.classic.methods.*;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.cookie.StandardCookieSpec;
+import org.apache.hc.client5.http.impl.DefaultSchemePortResolver;
 import org.apache.hc.client5.http.impl.auth.BasicAuthCache;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.client5.http.impl.auth.BasicScheme;
@@ -15,7 +15,7 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.BasicHttpClientConnectionManager;
-import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
+import org.apache.hc.client5.http.impl.routing.DefaultRoutePlanner;
 import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.client5.http.socket.ConnectionSocketFactory;
 import org.apache.hc.client5.http.socket.PlainConnectionSocketFactory;
@@ -27,9 +27,13 @@ import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
+import org.telekit.base.domain.Proxy;
+import org.telekit.base.domain.security.UsernamePasswordCredentials;
 import org.telekit.base.net.HttpConstants.AuthScheme;
+import org.telekit.base.net.connection.ConnectionParams;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -180,21 +184,8 @@ public class ApacheHttpClient implements HttpClient {
             return this;
         }
 
-        public Builder proxy(URI uri, PasswordAuthentication auth) {
-            HttpHost proxy = new HttpHost(uri.getScheme(), uri.getHost(), uri.getPort());
-            httpBuilder.setRoutePlanner(new DefaultProxyRoutePlanner(proxy));
-
-            // credentials is optional for proxy
-            if (auth != null) {
-                credentialsProvider.setCredentials(
-                        // do not construct auth scope from host
-                        // the latter also includes scheme, so there will be no match
-                        // if proxy uses HTTP and target resource uses HTTP
-                        new AuthScope(uri.getHost(), uri.getPort()),
-                        new UsernamePasswordCredentials(auth.getUserName(), auth.getPassword().clone())
-                );
-            }
-
+        public Builder proxy(Proxy proxy) {
+            httpBuilder.setRoutePlanner(new CachingProxyRoutePlanner(proxy, credentialsProvider));
             return this;
         }
 
@@ -212,7 +203,7 @@ public class ApacheHttpClient implements HttpClient {
                                           boolean preemptive) {
             credentialsProvider.setCredentials(
                     AUTH_SCOPE_ANY,
-                    new UsernamePasswordCredentials(auth.getUserName(), auth.getPassword().clone())
+                    new org.apache.hc.client5.http.auth.UsernamePasswordCredentials(auth.getUserName(), auth.getPassword().clone())
             );
 
             // preemptive auth puts auth headers into each request to omit challenge (401) stage
@@ -237,7 +228,9 @@ public class ApacheHttpClient implements HttpClient {
         }
     }
 
-    public static class SpecificResponseHandler implements HttpClientResponseHandler<Response> {
+    ///////////////////////////////////////////////////////////////////////////
+
+    static class SpecificResponseHandler implements HttpClientResponseHandler<Response> {
 
         @Override
         public Response handleResponse(ClassicHttpResponse response) {
@@ -247,6 +240,63 @@ public class ApacheHttpClient implements HttpClient {
                     headersToMap(response.getHeaders()),
                     consumeBodyQuietly(response.getEntity())
             );
+        }
+    }
+
+    static class CachingProxyRoutePlanner extends DefaultRoutePlanner {
+
+        private final Proxy proxy;
+        private final CredentialsStore credentialsProvider;
+
+        private final Map<String, HttpHost> routeCache = new HashMap<>();
+        private final Map<String, HttpHost> proxyHostCache = new HashMap<>();
+
+        public CachingProxyRoutePlanner(Proxy proxy, CredentialsStore credentialsProvider) {
+            super(new DefaultSchemePortResolver());
+
+            this.proxy = proxy;
+            this.credentialsProvider = credentialsProvider;
+        }
+
+        @Override
+        protected HttpHost determineProxy(HttpHost target, HttpContext context) {
+            String targetHostname = target.getHostName();
+            ConnectionParams params = proxy.getConnectionParams(targetHostname);
+
+            // proxying not required, use direct route
+            if (params == null) { return null; }
+
+            // use route from cache, even if null
+            HttpHost cachedRoute = routeCache.get(targetHostname);
+            if (cachedRoute != null) { return cachedRoute; }
+
+            String proxyKey = params.scheme().toString() + "://" + params.host() + ":" + params.port();
+            HttpHost proxyHost = proxyHostCache.get(proxyKey);
+            if (proxyHost == null) {
+                proxyHost = new HttpHost(params.scheme().toString(), params.host(), params.port());
+
+                // Do not instantiate auth scope from proxyHost, because the latter also
+                // includes scheme, There will be no match if proxy uses HTTP and target uses HTTPS.
+                AuthScope proxyScope = new AuthScope(params.host(), params.port());
+
+                // credentials is optional for proxy
+                UsernamePasswordCredentials cred = null;
+                if (params.credential() instanceof UsernamePasswordCredentials userPassword) {
+                    cred = userPassword;
+                }
+
+                if (cred != null && credentialsProvider.getCredentials(proxyScope, context) != null) {
+                    credentialsProvider.setCredentials(proxyScope,
+                            new org.apache.hc.client5.http.auth.UsernamePasswordCredentials(cred.getUsername(), cred.getPassword())
+                    );
+                }
+
+                proxyHostCache.put(proxyKey, proxyHost);
+            }
+
+            routeCache.put(targetHostname, proxyHost);
+
+            return proxyHost;
         }
     }
 }

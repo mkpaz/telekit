@@ -5,14 +5,11 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import org.telekit.base.domain.LineSeparator;
 import org.telekit.base.domain.Proxy;
-import org.telekit.base.domain.UsernamePasswordCredential;
-import org.telekit.base.net.ApacheHttpClient;
-import org.telekit.base.net.HttpClient;
+import org.telekit.base.domain.security.UsernamePasswordCredentials;
+import org.telekit.base.net.*;
 import org.telekit.base.net.HttpClient.Request;
 import org.telekit.base.net.HttpClient.Response;
-import org.telekit.base.net.HttpConstants;
 import org.telekit.base.net.HttpConstants.AuthScheme;
-import org.telekit.base.net.UriUtils;
 import org.telekit.base.util.ConcurrencyUtils;
 import org.telekit.base.util.PlaceholderReplacer;
 import org.telekit.desktop.tools.apiclient.Template.BatchSeparator;
@@ -45,7 +42,7 @@ public class Executor extends Task<ObservableList<CompletedRequest>> {
     private final ApacheHttpClient.Builder httpClientBuilder;
 
     private AuthScheme authScheme;
-    private UsernamePasswordCredential credential;
+    private UsernamePasswordCredentials credential;
     private Proxy proxy;
     private Duration timeoutBetweenRequests = Duration.ofMillis(200);
 
@@ -70,7 +67,7 @@ public class Executor extends Task<ObservableList<CompletedRequest>> {
         this.proxy = proxy;
     }
 
-    public void setPasswordBasedAuth(AuthScheme authScheme, UsernamePasswordCredential credential) {
+    public void setPasswordBasedAuth(AuthScheme authScheme, UsernamePasswordCredentials credential) {
         this.authScheme = authScheme;
         this.credential = credential;
     }
@@ -180,8 +177,7 @@ public class Executor extends Task<ObservableList<CompletedRequest>> {
     }
 
     private void configureProxy() {
-        if (proxy == null || !proxy.isValid()) { return; }
-        httpClientBuilder.proxy(proxy.getUri(), proxy.getPasswordAuthentication());
+        if (proxy != null) { httpClientBuilder.proxy(proxy); }
     }
 
     private void configureAuth(Map<String, String> userHeaders) {

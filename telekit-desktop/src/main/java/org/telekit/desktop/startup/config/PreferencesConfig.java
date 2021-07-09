@@ -3,7 +3,7 @@ package org.telekit.desktop.startup.config;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.telekit.base.i18n.BaseMessages;
 import org.telekit.base.i18n.I18n;
-import org.telekit.base.preferences.ApplicationPreferences;
+import org.telekit.base.preferences.internal.ApplicationPreferences;
 import org.telekit.base.util.Mappers;
 import org.telekit.controls.i18n.ControlsMessages;
 import org.telekit.desktop.i18n.DesktopMessages;

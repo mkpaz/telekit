@@ -56,12 +56,15 @@ module telekit.base {
     exports org.telekit.base.domain;
     exports org.telekit.base.domain.event;
     exports org.telekit.base.domain.exception;
+    exports org.telekit.base.domain.security;
     exports org.telekit.base.event;
     exports org.telekit.base.i18n;
     exports org.telekit.base.net;
-    exports org.telekit.base.preferences to telekit.desktop, com.fasterxml.jackson.databind;
+    exports org.telekit.base.net.connection;
     exports org.telekit.base.plugin;
     exports org.telekit.base.plugin.internal to telekit.desktop;
+    exports org.telekit.base.preferences;
+    exports org.telekit.base.preferences.internal to telekit.desktop, com.fasterxml.jackson.databind;
     exports org.telekit.base.service;
     exports org.telekit.base.service.impl;
     exports org.telekit.base.telecom;
@@ -69,4 +72,6 @@ module telekit.base {
     exports org.telekit.base.util;
 
     opens org.telekit.base.domain to com.fasterxml.jackson.databind;
+    opens org.telekit.base.domain.security to com.fasterxml.jackson.databind;
+    opens org.telekit.base.preferences.internal to com.fasterxml.jackson.databind;
 }

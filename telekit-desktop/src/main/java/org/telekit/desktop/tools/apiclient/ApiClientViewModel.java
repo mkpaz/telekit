@@ -10,12 +10,12 @@ import org.telekit.base.desktop.mvvm.*;
 import org.telekit.base.di.Initializable;
 import org.telekit.base.domain.KeyValue;
 import org.telekit.base.domain.LineSeparator;
-import org.telekit.base.domain.UsernamePasswordCredential;
+import org.telekit.base.domain.security.UsernamePasswordCredentials;
 import org.telekit.base.domain.event.Notification;
 import org.telekit.base.domain.event.TaskProgressEvent;
 import org.telekit.base.domain.exception.TelekitException;
 import org.telekit.base.event.DefaultEventBus;
-import org.telekit.base.preferences.ApplicationPreferences;
+import org.telekit.base.preferences.SharedPreferences;
 import org.telekit.base.service.CompletionProvider;
 import org.telekit.base.service.impl.KeyValueCompletionProvider;
 import org.telekit.controls.util.BindUtils;
@@ -52,7 +52,7 @@ public final class ApiClientViewModel implements Initializable, ViewModel {
 
     static final String PREVIEW_FILE_NAME = "api-client.preview.html";
 
-    private final ApplicationPreferences preferences;
+    private final SharedPreferences preferences;
     private final CompletionRegistry completionRegistry;
     private final TemplateRepository templateRepository;
     private final ExecutorService threadPool;
@@ -60,7 +60,7 @@ public final class ApiClientViewModel implements Initializable, ViewModel {
     private Executor executor;
 
     @Inject
-    public ApiClientViewModel(ApplicationPreferences preferences,
+    public ApiClientViewModel(SharedPreferences preferences,
                               YAMLMapper yamlMapper,
                               CompletionRegistry completionRegistry,
                               ExecutorService threadPool) {
@@ -368,7 +368,7 @@ public final class ApiClientViewModel implements Initializable, ViewModel {
             String username = trim(authUsername.get());
             String password = trim(authPassword.get());
             if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
-                executor.setPasswordBasedAuth(AuthScheme.BASIC, UsernamePasswordCredential.of(username, password));
+                executor.setPasswordBasedAuth(AuthScheme.BASIC, UsernamePasswordCredentials.of(username, password));
             }
 
             // prepare properties

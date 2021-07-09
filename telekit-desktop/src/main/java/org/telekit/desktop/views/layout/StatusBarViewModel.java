@@ -14,9 +14,9 @@ import org.telekit.base.di.Initializable;
 import org.telekit.base.event.DefaultEventBus;
 import org.telekit.base.event.Listener;
 import org.telekit.base.domain.event.TaskProgressEvent;
-import org.telekit.base.preferences.ApplicationPreferences;
-import org.telekit.base.preferences.Security;
-import org.telekit.base.preferences.Vault;
+import org.telekit.base.preferences.internal.ApplicationPreferences;
+import org.telekit.base.preferences.internal.Security;
+import org.telekit.base.preferences.internal.Vault;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

@@ -12,7 +12,7 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.telekit.base.desktop.Dimension;
-import org.telekit.base.preferences.ApplicationPreferences;
+import org.telekit.base.preferences.internal.ApplicationPreferences;
 import org.telekit.controls.theme.DefaultTheme;
 import org.telekit.desktop.IconCache;
 import org.telekit.desktop.startup.config.Config;

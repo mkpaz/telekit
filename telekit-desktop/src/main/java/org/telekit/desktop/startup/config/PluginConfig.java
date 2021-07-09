@@ -6,7 +6,7 @@ import org.telekit.base.plugin.internal.PluginBox;
 import org.telekit.base.plugin.internal.PluginCleaner;
 import org.telekit.base.plugin.internal.PluginException;
 import org.telekit.base.plugin.internal.PluginManager;
-import org.telekit.base.preferences.ApplicationPreferences;
+import org.telekit.base.preferences.internal.ApplicationPreferences;
 
 import java.util.ArrayList;
 import java.util.Collection;

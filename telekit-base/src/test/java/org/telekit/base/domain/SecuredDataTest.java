@@ -4,6 +4,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.telekit.base.BaseSetup;
+import org.telekit.base.domain.security.SecuredData;
 import org.telekit.base.util.Mappers;
 
 import static org.assertj.core.api.Assertions.assertThat;

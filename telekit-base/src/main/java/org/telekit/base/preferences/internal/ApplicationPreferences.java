@@ -1,7 +1,8 @@
-package org.telekit.base.preferences;
+package org.telekit.base.preferences.internal;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
@@ -15,10 +16,7 @@ import org.telekit.base.i18n.I18n;
 
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.prefs.Preferences;
 
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
@@ -34,8 +32,8 @@ import static org.telekit.base.util.FileUtils.*;
 public class ApplicationPreferences {
 
     private Language language = Language.EN;
-    private Proxy proxy;
     private Security security = new Security();
+    private Map<String, Proxy> proxies = new HashMap<>();
 
     @JacksonXmlElementWrapper(localName = "disabledPlugins")
     @JacksonXmlProperty(localName = "item")
@@ -50,8 +48,9 @@ public class ApplicationPreferences {
     public Language getLanguage() { return language; }
     public void setLanguage(Language language) { this.language = defaultIfNull(language, Language.EN); }
 
-    public Proxy getProxy() { return proxy; }
-    public void setProxy(Proxy proxy) { this.proxy = proxy; }
+    @JsonProperty("proxy")
+    public Map<String, Proxy> getProxy() { return proxies; }
+    public void setProxy(Map<String, Proxy> proxy) { this.proxies = proxy; }
 
     public Security getSecurity() { return security; }
     public void setSecurity(Security security) { this.security = defaultIfNull(security, new Security()); }
@@ -59,6 +58,21 @@ public class ApplicationPreferences {
     public Set<String> getDisabledPlugins() { return disabledPlugins; }
     public void setDisabledPlugins(Set<String> disabledPlugins) { this.disabledPlugins = defaultIfNull(disabledPlugins, new HashSet<>()); }
     //@formatter:on
+
+    @JsonIgnore
+    public @Nullable Proxy getActiveProxy() {
+        return proxies.values().stream().filter(Proxy::isActive).findFirst().orElse(null);
+    }
+
+    @JsonIgnore
+    public @Nullable Proxy getProxy(String id) {
+        return proxies.get(Objects.requireNonNull(id));
+    }
+
+    @JsonIgnore
+    public void setProxy(Proxy proxy) {
+        if (proxy != null) { proxies.put(Objects.requireNonNull(proxy.id()), proxy); }
+    }
 
     @JsonIgnore
     public Locale getLocale() {
@@ -72,16 +86,6 @@ public class ApplicationPreferences {
     public void setDirty() { this.dirty = true; }
 
     public void resetDirty() { this.dirty = false; }
-
-    @Override
-    public String toString() {
-        return "UserPreferences{" +
-                "language=" + language +
-                ", proxy=" + proxy +
-                ", security=" + security +
-                ", disabledPlugins=" + disabledPlugins +
-                '}';
-    }
 
     ///////////////////////////////////////////////////////////////////////////
     //  System preferences                                                   //

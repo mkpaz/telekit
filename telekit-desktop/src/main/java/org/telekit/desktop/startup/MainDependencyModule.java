@@ -8,12 +8,11 @@ import org.telekit.base.desktop.Overlay;
 import org.telekit.base.desktop.routing.Router;
 import org.telekit.base.di.DependencyModule;
 import org.telekit.base.di.Provides;
-import org.telekit.base.domain.Proxy;
 import org.telekit.base.plugin.internal.PluginManager;
-import org.telekit.base.preferences.ApplicationPreferences;
-import org.telekit.base.preferences.Security;
-import org.telekit.base.preferences.Vault;
-import org.telekit.base.preferences.VaultKeyProvider;
+import org.telekit.base.preferences.internal.ApplicationPreferences;
+import org.telekit.base.preferences.internal.Security;
+import org.telekit.base.preferences.internal.Vault;
+import org.telekit.base.preferences.internal.VaultKeyProvider;
 import org.telekit.base.service.EncryptionService;
 import org.telekit.base.service.Encryptor;
 import org.telekit.base.service.KeyProvider;
@@ -30,7 +29,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.telekit.base.preferences.Vault.MASTER_KEY_ALIAS;
+import static org.telekit.base.preferences.internal.Vault.MASTER_KEY_ALIAS;
 
 public final class MainDependencyModule implements DependencyModule {
 
@@ -121,10 +120,5 @@ public final class MainDependencyModule implements DependencyModule {
     @Singleton
     public YAMLMapper yamlMapper() {
         return Mappers.createYamlMapper();
-    }
-
-    @Provides
-    public Proxy proxy() {
-        return new Proxy(preferences().getProxy());
     }
 }

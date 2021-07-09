@@ -8,7 +8,7 @@ import org.telekit.base.i18n.BundleLoader;
 import org.telekit.base.i18n.I18n;
 import org.telekit.base.plugin.Extension;
 import org.telekit.base.plugin.Plugin;
-import org.telekit.base.preferences.ApplicationPreferences;
+import org.telekit.base.preferences.internal.ApplicationPreferences;
 
 import java.io.IOException;
 import java.nio.file.Files;

@@ -1,16 +1,16 @@
-package org.telekit.base.preferences;
+package org.telekit.base.preferences.internal;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import org.telekit.base.domain.SecuredData;
+import org.telekit.base.domain.security.SecuredData;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static org.telekit.base.Env.CONFIG_DIR;
-import static org.telekit.base.preferences.Vault.VaultType;
-import static org.telekit.base.preferences.Vault.deriveFromPassword;
+import static org.telekit.base.preferences.internal.Vault.VaultType;
+import static org.telekit.base.preferences.internal.Vault.deriveFromPassword;
 
 public class Security {
 

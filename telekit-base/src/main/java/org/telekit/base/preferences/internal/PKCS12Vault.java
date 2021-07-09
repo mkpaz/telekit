@@ -1,4 +1,4 @@
-package org.telekit.base.preferences;
+package org.telekit.base.preferences.internal;
 
 import org.telekit.base.domain.exception.TelekitException;
 import org.telekit.base.domain.exception.VaultLockedException;

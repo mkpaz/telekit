@@ -1,10 +1,10 @@
 package org.telekit.desktop.startup.config;
 
-import org.telekit.base.domain.SecuredData;
-import org.telekit.base.preferences.ApplicationPreferences;
-import org.telekit.base.preferences.PKCS12Vault;
-import org.telekit.base.preferences.Security;
-import org.telekit.base.preferences.Vault;
+import org.telekit.base.domain.security.SecuredData;
+import org.telekit.base.preferences.internal.ApplicationPreferences;
+import org.telekit.base.preferences.internal.PKCS12Vault;
+import org.telekit.base.preferences.internal.Security;
+import org.telekit.base.preferences.internal.Vault;
 import org.telekit.base.util.PasswordGenerator;
 
 import java.nio.file.Files;
@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.security.Key;
 
 import static org.telekit.base.Env.DEFAULT_ENCRYPTION_ALG;
-import static org.telekit.base.preferences.Vault.MASTER_KEY_ALIAS;
+import static org.telekit.base.preferences.internal.Vault.MASTER_KEY_ALIAS;
 import static org.telekit.base.service.Encryptor.generateKey;
 import static org.telekit.base.util.PasswordGenerator.ASCII_LOWER_UPPER_DIGITS;
 

@@ -1,102 +1,58 @@
 package org.telekit.base.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import inet.ipaddr.HostName;
 import org.jetbrains.annotations.Nullable;
-import org.telekit.base.net.Scheme;
+import org.telekit.base.net.connection.ConnectionParams;
 
-import java.net.PasswordAuthentication;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
-import static org.apache.commons.lang3.StringUtils.equalsIgnoreCase;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
-import static org.telekit.base.util.CommonUtils.map;
+public interface Proxy {
 
-public class Proxy {
+    String id();
 
-    public static final Set<Scheme> SUPPORTED_SCHEMES = Set.of(Scheme.HTTP);
-    public static final int MODE_NO_PROXY = 0;
-    public static final int MODE_MANUAL = 1;
+    @Nullable ConnectionParams getConnectionParams(String ipOrHostname);
 
-    private int mode = MODE_NO_PROXY;
-    private URI uri;
-    private String username;
-    private char[] password;
-    private List<String> exceptions = new ArrayList<>();
+    boolean isActive();
 
-    public Proxy() {}
+    void setActive(boolean state);
 
-    public Proxy(Proxy proxy) {
-        this.mode = proxy.getMode();
-        this.uri = proxy.getUri();
-        this.username = proxy.getUsername();
-        this.password = proxy.getPassword();
-        this.exceptions = proxy.getExceptions();
-    }
+    /**
+     * Verifies whether provided strings has parent-child relationship.
+     * Input strings can be IP address of equal type, which means if
+     * parent string is a hostname, child string must also be a hostname.
+     * <pre>
+     * {@code
+     *     192.168.1.1 ∋ 192.168.1.1 = true
+     *     192.168.* ∋ 192.168.1.1 = true
+     *     172.21.* ∋ 192.168.1.1 = false
+     *     172.21.* ∋ null = false
+     *     172.21.1.0/24 ∋ 172.21.1.0 = true
+     *     *.example.com ∋ foo.example.com = true
+     *     *.example.com ∋ google.com = false
+     *     *.example.com ∋ com = false
+     * }
+     * </pre>
+     * <p>
+     * See tests for more example
+     */
+    static boolean globMatch(String parent, String child) {
+        if (parent == null || child == null) { return false; }
 
-    //@formatter:off
-    public URI getUri() { return uri; }
-    public void setUri(URI uri) { this.uri = uri; }
+        String parentClean = parent.trim().toLowerCase();
+        String childClean = child.trim().toLowerCase();
 
-    public int getMode() { return mode; }
-    public void setMode(int mode) { this.mode = mode; }
+        if (Objects.equals(parentClean, childClean)) { return true; }
 
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+        HostName parentHost = new HostName(parent);
+        HostName childHost = new HostName(child);
+        if (parentHost.isAddress() != childHost.isAddress()) { return false; }
 
-    public char[] getPassword() { return password; }
-    public void setPassword(char[] password) { this.password = password; }
-
-    public List<String> getExceptions() { return exceptions; }
-    public void setExceptions(List<String> exceptions) { this.exceptions = exceptions; }
-    //@formatter:on
-
-    @JsonIgnore
-    public @Nullable String getScheme() { return map(uri, URI::getScheme); }
-
-    @JsonIgnore
-    public @Nullable String getHost() { return map(uri, URI::getHost); }
-
-    @JsonIgnore
-    public int getPort() { return map(uri, u -> Math.max(uri.getPort(), 0), 0); }
-
-    @JsonIgnore
-    public @Nullable String getPasswordAsString() {
-        return password != null && password.length > 0 ? new String(password) : null;
-    }
-
-    @JsonIgnore
-    public @Nullable UsernamePasswordCredential getCredential() {
-        return hasUsername() && hasPassword() ? new UsernamePasswordCredential(username, password) : null;
-    }
-
-    @JsonIgnore
-    public @Nullable PasswordAuthentication getPasswordAuthentication() {
-        return hasUsername() && hasPassword() ? new PasswordAuthentication(username, password) : null;
-    }
-
-    @JsonIgnore
-    public boolean isValid() {
-        return (mode == MODE_NO_PROXY) ||
-                (mode == MODE_MANUAL && uri != null && SUPPORTED_SCHEMES.stream()
-                        .anyMatch(scheme -> equalsIgnoreCase(scheme.toString(), uri.getScheme())));
-    }
-
-    private boolean hasUsername() { return isNotBlank(username); }
-
-    private boolean hasPassword() { return password != null && password.length > 0; }
-
-    @Override
-    public String toString() {
-        return "Proxy{" +
-                "mode=" + mode +
-                ", uri=" + uri +
-                ", username='" + username + '\'' +
-                ", password=" + Arrays.toString(password) +
-                ", exceptions=" + exceptions +
-                '}';
+        if (parentHost.isAddress()) {
+            return parentHost.asAddress().contains(childHost.asAddress());
+        } else {
+            String globPattern = "^" + Pattern.quote(parentClean).replace("*", "\\E.*\\Q") + "$";
+            return childClean.matches(globPattern);
+        }
     }
 }
