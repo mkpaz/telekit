@@ -11,6 +11,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.util.StringConverter;
+import org.telekit.base.domain.Proxy;
 import org.telekit.base.net.connection.Scheme;
 import org.telekit.base.preferences.internal.Language;
 import org.telekit.base.preferences.internal.ManualProxy;
@@ -84,17 +85,17 @@ public class GeneralPreferencesTab extends Tab {
 
         noProxyToggle = new RadioButton(t(PREFERENCES_NO_PROXY));
         noProxyToggle.setToggleGroup(proxyModeToggle);
-        noProxyToggle.setUserData(PreferencesViewModel.PROXY_DISABLED);
+        noProxyToggle.setUserData(Proxy.NO_PROXY);
 
         manualProxyToggle = new RadioButton(t(PREFERENCES_MANUAL_PROXY_CONFIGURATION));
         manualProxyToggle.setToggleGroup(proxyModeToggle);
         manualProxyToggle.setPadding(new Insets(0, 0, 5, 0));
-        manualProxyToggle.setUserData(PreferencesViewModel.PROXY_MANUAL);
+        manualProxyToggle.setUserData(ManualProxy.ID);
 
         BooleanBinding disableManualSettingsBinding = Bindings.createBooleanBinding(
                 () -> proxyModeToggle.getSelectedToggle() == noProxyToggle, proxyModeToggle.selectedToggleProperty()
         );
-        bindToggleGroup(proxyModeToggle, model.proxyModeProperty());
+        bindToggleGroup(proxyModeToggle, model.activeProxyIdProperty());
 
         // MANUAL PROXY
 

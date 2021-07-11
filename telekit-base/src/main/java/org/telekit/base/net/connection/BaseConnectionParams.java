@@ -43,7 +43,7 @@ public class BaseConnectionParams implements ConnectionParams {
     public int port() { return port; }
 
     @Override
-    public @Nullable Credentials credential() { return credentials; }
+    public @Nullable Credentials credentials() { return credentials; }
 
     @Override
     public String toString() {

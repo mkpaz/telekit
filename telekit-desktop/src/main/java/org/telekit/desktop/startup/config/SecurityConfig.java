@@ -3,7 +3,7 @@ package org.telekit.desktop.startup.config;
 import org.telekit.base.domain.security.SecuredData;
 import org.telekit.base.preferences.internal.ApplicationPreferences;
 import org.telekit.base.preferences.internal.PKCS12Vault;
-import org.telekit.base.preferences.internal.Security;
+import org.telekit.base.preferences.internal.SecurityPreferences;
 import org.telekit.base.preferences.internal.Vault;
 import org.telekit.base.util.PasswordGenerator;
 
@@ -34,7 +34,7 @@ public final class SecurityConfig implements Config {
     }
 
     private void loadKeyVault() {
-        Security security = preferences.getSecurity();
+        SecurityPreferences security = preferences.getSecurityPreferences();
         Path vaultFilePath = security.getVaultFilePath();
 
         vault = new PKCS12Vault(vaultFilePath);

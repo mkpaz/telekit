@@ -2,76 +2,72 @@ package org.telekit.base.preferences.internal;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import org.jetbrains.annotations.Nullable;
 import org.telekit.base.Env;
-import org.telekit.base.desktop.Dimension;
-import org.telekit.base.domain.Proxy;
 import org.telekit.base.domain.exception.TelekitException;
 import org.telekit.base.i18n.I18n;
 
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.*;
-import java.util.prefs.Preferences;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 import static org.telekit.base.Env.CONFIG_DIR;
-import static org.telekit.base.Env.WINDOW_MAXIMIZED;
 import static org.telekit.base.i18n.BaseMessages.MGG_UNABLE_TO_LOAD_DATA_FROM_FILE;
 import static org.telekit.base.i18n.BaseMessages.MGG_UNABLE_TO_SAVE_DATA_TO_FILE;
 import static org.telekit.base.util.CommonUtils.hush;
 import static org.telekit.base.util.FileUtils.*;
 
-@JacksonXmlRootElement
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ApplicationPreferences {
 
-    private Language language = Language.EN;
-    private Security security = new Security();
-    private Map<String, Proxy> proxies = new HashMap<>();
+    public static final Path CONFIG_PATH = CONFIG_DIR.resolve("preferences.yaml");
 
-    @JacksonXmlElementWrapper(localName = "disabledPlugins")
-    @JacksonXmlProperty(localName = "item")
+    private Language language = Language.EN;
+    private SecurityPreferences securityPreferences = new SecurityPreferences();
+    private ProxyPreferences proxyPreferences = new ProxyPreferences();
     private Set<String> disabledPlugins = new HashSet<>();
+
+    // API for java.util.prefs.Preferences, they aren't stored in the application config
+    private final SystemPreferences systemPreferences = new SystemPreferences();
 
     // indicates that preferences changes has been made
     private boolean dirty = false;
 
     public ApplicationPreferences() {}
 
-    //@formatter:off
-    public Language getLanguage() { return language; }
-    public void setLanguage(Language language) { this.language = defaultIfNull(language, Language.EN); }
-
-    @JsonProperty("proxy")
-    public Map<String, Proxy> getProxy() { return proxies; }
-    public void setProxy(Map<String, Proxy> proxy) { this.proxies = proxy; }
-
-    public Security getSecurity() { return security; }
-    public void setSecurity(Security security) { this.security = defaultIfNull(security, new Security()); }
-
-    public Set<String> getDisabledPlugins() { return disabledPlugins; }
-    public void setDisabledPlugins(Set<String> disabledPlugins) { this.disabledPlugins = defaultIfNull(disabledPlugins, new HashSet<>()); }
-    //@formatter:on
-
-    @JsonIgnore
-    public @Nullable Proxy getActiveProxy() {
-        return proxies.values().stream().filter(Proxy::isActive).findFirst().orElse(null);
+    public Language getLanguage() {
+        return language;
     }
 
-    @JsonIgnore
-    public @Nullable Proxy getProxy(String id) {
-        return proxies.get(Objects.requireNonNull(id));
+    public void setLanguage(Language language) {
+        this.language = defaultIfNull(language, Language.EN);
     }
 
-    @JsonIgnore
-    public void setProxy(Proxy proxy) {
-        if (proxy != null) { proxies.put(Objects.requireNonNull(proxy.id()), proxy); }
+    public SecurityPreferences getSecurityPreferences() {
+        return securityPreferences;
+    }
+
+    public void setSecurityPreferences(SecurityPreferences security) {
+        this.securityPreferences = defaultIfNull(security, new SecurityPreferences());
+    }
+
+    public ProxyPreferences getProxyPreferences() {
+        return proxyPreferences;
+    }
+
+    public void setProxyPreferences(ProxyPreferences proxyPreferences) {
+        this.proxyPreferences = proxyPreferences;
+    }
+
+    public Set<String> getDisabledPlugins() {
+        return disabledPlugins;
+    }
+
+    public void setDisabledPlugins(Set<String> disabledPlugins) {
+        this.disabledPlugins = defaultIfNull(disabledPlugins, new HashSet<>());
     }
 
     @JsonIgnore
@@ -81,64 +77,30 @@ public class ApplicationPreferences {
     }
 
     @JsonIgnore
-    public boolean isDirty() { return dirty; }
-
-    public void setDirty() { this.dirty = true; }
-
-    public void resetDirty() { this.dirty = false; }
-
-    ///////////////////////////////////////////////////////////////////////////
-    //  System preferences                                                   //
-    ///////////////////////////////////////////////////////////////////////////
-
-    private final Preferences systemPreferences = Preferences.userRoot().node(Env.APP_NAME);
-    private static final String WINDOW_WIDTH = "windowWidth";
-    private static final String WINDOW_HEIGHT = "windowHeight";
+    public SystemPreferences getSystemPreferences() {
+        return systemPreferences;
+    }
 
     @JsonIgnore
-    public @Nullable Dimension getMainWindowSize() {
-        try {
-            Objects.requireNonNull(systemPreferences);
-            int width = systemPreferences.getInt(WINDOW_WIDTH, (int) WINDOW_MAXIMIZED.width());
-            int height = systemPreferences.getInt(WINDOW_HEIGHT, (int) WINDOW_MAXIMIZED.height());
-            return new Dimension(width, height);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+    public boolean isDirty() {
+        return dirty;
     }
 
-    public void setMainWindowSize(Dimension dimension) {
-        try {
-            Objects.requireNonNull(systemPreferences);
-            Objects.requireNonNull(dimension);
+    public void setDirty() {
+        this.dirty = true;
+    }
 
-            int width = Math.max((int) dimension.width(), 800);
-            int height = Math.max((int) dimension.height(), 600);
-
-            if (WINDOW_MAXIMIZED.equals(dimension)) {
-                width = (int) WINDOW_MAXIMIZED.width();
-                height = (int) WINDOW_MAXIMIZED.height();
-            }
-
-            systemPreferences.putInt(WINDOW_WIDTH, width);
-            systemPreferences.putInt(WINDOW_HEIGHT, height);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void resetDirty() {
+        this.dirty = false;
     }
 
     ///////////////////////////////////////////////////////////////////////////
-
-    public static final Path CONFIG_PATH = CONFIG_DIR.resolve("preferences.yaml");
 
     public static ApplicationPreferences load(YAMLMapper mapper) {
         return load(mapper, CONFIG_PATH);
     }
 
     public static ApplicationPreferences load(YAMLMapper mapper, Path path) {
-        Objects.requireNonNull(mapper);
-        Objects.requireNonNull(path);
         try {
             return mapper.readValue(path.toFile(), ApplicationPreferences.class);
         } catch (Exception e) {
@@ -152,6 +114,7 @@ public class ApplicationPreferences {
 
     public static void save(ApplicationPreferences preferences, YAMLMapper mapper, Path path) {
         Path backup = backupFile(path);
+
         try {
             mapper.writeValue(path.toFile(), preferences);
         } catch (Exception e) {

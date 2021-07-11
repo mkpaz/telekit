@@ -1,13 +1,25 @@
 package org.telekit.base.domain;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import inet.ipaddr.HostName;
 import org.jetbrains.annotations.Nullable;
 import org.telekit.base.net.connection.ConnectionParams;
+import org.telekit.base.preferences.internal.ManualProxy;
 
 import java.util.Objects;
 import java.util.regex.Pattern;
 
+import static com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY;
+import static com.fasterxml.jackson.annotation.JsonTypeInfo.Id.NAME;
+
+@JsonTypeInfo(use = NAME, include = PROPERTY)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = ManualProxy.class, name = "manual"),
+})
 public interface Proxy {
+
+    String NO_PROXY = "no_proxy";
 
     String id();
 
@@ -18,9 +30,10 @@ public interface Proxy {
     void setActive(boolean state);
 
     /**
-     * Verifies whether provided strings has parent-child relationship.
-     * Input strings can be IP address of equal type, which means if
-     * parent string is a hostname, child string must also be a hostname.
+     * Checks whether provided address matches provided expression.
+     * Input strings can be IP addresses or hostnames of equal type, which means
+     * if expression string represents hostname pattern, address string must also
+     * be a hostname.
      * <pre>
      * {@code
      *     192.168.1.1 ∋ 192.168.1.1 = true
@@ -36,23 +49,23 @@ public interface Proxy {
      * <p>
      * See tests for more example
      */
-    static boolean globMatch(String parent, String child) {
-        if (parent == null || child == null) { return false; }
+    static boolean match(String expression, String address) {
+        if (expression == null || address == null) { return false; }
 
-        String parentClean = parent.trim().toLowerCase();
-        String childClean = child.trim().toLowerCase();
+        String expressionClean = expression.trim().toLowerCase();
+        String addressClean = address.trim().toLowerCase();
 
-        if (Objects.equals(parentClean, childClean)) { return true; }
+        if (Objects.equals(expressionClean, addressClean)) { return true; }
 
-        HostName parentHost = new HostName(parent);
-        HostName childHost = new HostName(child);
-        if (parentHost.isAddress() != childHost.isAddress()) { return false; }
+        HostName expressionHostname = new HostName(expression);
+        HostName addressHostname = new HostName(address);
+        if (expressionHostname.isAddress() != addressHostname.isAddress()) { return false; }
 
-        if (parentHost.isAddress()) {
-            return parentHost.asAddress().contains(childHost.asAddress());
+        if (expressionHostname.isAddress()) {
+            return expressionHostname.asAddress().contains(addressHostname.asAddress());
         } else {
-            String globPattern = "^" + Pattern.quote(parentClean).replace("*", "\\E.*\\Q") + "$";
-            return childClean.matches(globPattern);
+            String globExpression = "^" + Pattern.quote(expressionClean).replace("*", "\\E.*\\Q") + "$";
+            return addressClean.matches(globExpression);
         }
     }
 }

@@ -42,7 +42,7 @@ public class Executor extends Task<ObservableList<CompletedRequest>> {
     private final ApacheHttpClient.Builder httpClientBuilder;
 
     private AuthScheme authScheme;
-    private UsernamePasswordCredentials credential;
+    private UsernamePasswordCredentials credentials;
     private Proxy proxy;
     private Duration timeoutBetweenRequests = Duration.ofMillis(200);
 
@@ -67,9 +67,9 @@ public class Executor extends Task<ObservableList<CompletedRequest>> {
         this.proxy = proxy;
     }
 
-    public void setPasswordBasedAuth(AuthScheme authScheme, UsernamePasswordCredentials credential) {
+    public void setPasswordBasedAuth(AuthScheme authScheme, UsernamePasswordCredentials credentials) {
         this.authScheme = authScheme;
-        this.credential = credential;
+        this.credentials = credentials;
     }
 
     public int getPlannedRequestCount() {
@@ -181,7 +181,7 @@ public class Executor extends Task<ObservableList<CompletedRequest>> {
     }
 
     private void configureAuth(Map<String, String> userHeaders) {
-        if (authScheme == null || credential == null) { return; }
+        if (authScheme == null || credentials == null) { return; }
 
         // we have to remove authorization header manually, because Apache HTTP won't override it
         userHeaders.entrySet().removeIf(e -> HttpConstants.Headers.AUTHORIZATION.equalsIgnoreCase(e.getKey()));
@@ -190,7 +190,7 @@ public class Executor extends Task<ObservableList<CompletedRequest>> {
         String safeUri = PlaceholderReplacer.removePlaceholders(template.getUri());
         if (authScheme == AuthScheme.BASIC) {
             httpClientBuilder.basicAuth(
-                    credential.toPasswordAuthentication(),
+                    credentials.toPasswordAuthentication(),
                     UriUtils.withoutPath(URI.create(safeUri)),
                     true
             );

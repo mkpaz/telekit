@@ -11,5 +11,5 @@ public interface ConnectionParams {
 
     int port();
 
-    @Nullable Credentials credential();
+    @Nullable Credentials credentials();
 }

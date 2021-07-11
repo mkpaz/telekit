@@ -44,9 +44,6 @@ import static org.telekit.base.util.CSVUtils.COMMA_OR_SEMICOLON;
 @Singleton
 public class PreferencesViewModel implements Initializable, ViewModel {
 
-    static final int PROXY_DISABLED = 0;
-    static final int PROXY_MANUAL = 1;
-
     private final ApplicationPreferences preferences;
     private final PluginManager pluginManager;
     private final YAMLMapper yamlMapper;
@@ -63,35 +60,28 @@ public class PreferencesViewModel implements Initializable, ViewModel {
     @Override
     public void initialize() {
         language.set(preferences.getLanguage());
-
-        setProxyMode();
-        setManualProxyProperties();
+        setProxyProperties();
 
         plugins.getFilteredList().setPredicate(p -> p.getState() != UNINSTALLED);
         updatePluginsList();
     }
 
-    private void setProxyMode() {
-        proxyMode.set(PROXY_DISABLED);
+    private void setProxyProperties() {
+        activeProxyId.set(Proxy.NO_PROXY);
 
-        Proxy activeProxy = preferences.getActiveProxy();
-        if (activeProxy == null) { return; }
+        for (Proxy proxy : preferences.getProxies()) {
+            if (proxy instanceof ManualProxy manualProxy) {
+                if (proxy.isActive()) { activeProxyId.set(proxy.id()); }
 
-        if (Objects.equals(ManualProxy.ID, activeProxy.id())) {
-            proxyMode.set(PROXY_MANUAL);
-        }
-    }
+                proxyScheme.set(manualProxy.getScheme());
+                proxyHost.set(manualProxy.getHost());
+                proxyPort.set(manualProxy.getPort());
+                proxyExceptions.set(String.join(";", manualProxy.getExceptions()));
 
-    private void setManualProxyProperties() {
-        Proxy proxy = preferences.getProxy(ManualProxy.ID);
-        if (proxy instanceof ManualProxy manualProxy) {
-            proxyScheme.set(manualProxy.getScheme());
-            proxyHost.set(manualProxy.getHost());
-            proxyPort.set(manualProxy.getPort());
-            proxyExceptions.set(String.join(";", manualProxy.getExceptions()));
-            if (manualProxy.getCredential() != null) {
-                proxyUsername.set(manualProxy.getCredential().getUsername());
-                proxyPassword.set(manualProxy.getCredential().getPasswordAsString());
+                if (manualProxy.getCredentials() != null) {
+                    proxyUsername.set(manualProxy.getCredentials().getUsername());
+                    proxyPassword.set(manualProxy.getCredentials().getPasswordAsString());
+                }
             }
         }
     }
@@ -111,12 +101,12 @@ public class PreferencesViewModel implements Initializable, ViewModel {
             exceptions = Arrays.asList(proxyExceptions.get().split(COMMA_OR_SEMICOLON));
         }
 
-        UsernamePasswordCredentials credential = null;
+        UsernamePasswordCredentials credentials = null;
         if (isNotBlank(proxyUsername.get()) && isNotBlank(proxyPassword.get())) {
-            credential = UsernamePasswordCredentials.of(proxyUsername.get(), proxyPassword.get());
+            credentials = UsernamePasswordCredentials.of(proxyUsername.get(), proxyPassword.get());
         }
 
-        return new ManualProxy(proxyMode.get() == PROXY_MANUAL, uri, credential, exceptions);
+        return new ManualProxy(uri, credentials, exceptions);
     }
 
     private void updatePluginsList() {
@@ -136,8 +126,8 @@ public class PreferencesViewModel implements Initializable, ViewModel {
     private final ObjectProperty<Language> language = new SimpleObjectProperty<>(this, "language");
     public ObjectProperty<Language> languageProperty() { return language; }
 
-    private final ObjectProperty<Integer> proxyMode = new SimpleObjectProperty<>(this, "proxyMode");
-    public ObjectProperty<Integer> proxyModeProperty() { return proxyMode; }
+    private final ObjectProperty<String> activeProxyId = new SimpleObjectProperty<>(this, "activeProxyId");
+    public ObjectProperty<String> activeProxyIdProperty() { return activeProxyId; }
 
     private final ObjectProperty<Scheme> proxyScheme = new SimpleObjectProperty<>(this, "proxyScheme", Scheme.HTTP);
     public ObjectProperty<Scheme> proxySchemeProperty() { return proxyScheme; }
@@ -179,7 +169,8 @@ public class PreferencesViewModel implements Initializable, ViewModel {
             }
 
             Proxy manualProxy = createManualProxyFromProperties();
-            if (manualProxy != null) { preferences.setProxy(manualProxy); }
+            if (manualProxy != null) { preferences.updateProxy(manualProxy); }
+            preferences.setActiveProxy(activeProxyId.get());
 
             savePreferences();
 

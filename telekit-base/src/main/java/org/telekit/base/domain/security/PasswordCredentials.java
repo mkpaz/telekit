@@ -13,7 +13,8 @@ public class PasswordCredentials extends Credentials {
         if (password.length == 0) { throw new IllegalArgumentException("Password can't be empty."); }
     }
 
-    // always clone mutable passwords, because some tools clean-up array after it has been used
+    // always clone mutable passwords, because some tools clean-up array
+    // after it has been used for security reasons
     public char[] getPassword() { return password.clone(); }
 
     @JsonIgnore

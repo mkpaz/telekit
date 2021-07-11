@@ -1,8 +1,6 @@
 package org.telekit.base.preferences.internal;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.fasterxml.jackson.annotation.*;
 import org.telekit.base.domain.security.SecuredData;
 
 import java.nio.file.Path;
@@ -12,7 +10,9 @@ import static org.telekit.base.Env.CONFIG_DIR;
 import static org.telekit.base.preferences.internal.Vault.VaultType;
 import static org.telekit.base.preferences.internal.Vault.deriveFromPassword;
 
-public class Security {
+@JsonRootName(value = "security")
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class SecurityPreferences {
 
     public static final String DEFAULT_VAULT_FILE_NAME = "vault";
 
@@ -25,7 +25,7 @@ public class Security {
     // key can be null, which means that vault have to be unlocked manually
     private @JsonUnwrapped(suffix = "VaultPass") SecuredData vaultPassword;
 
-    public Security() {}
+    public SecurityPreferences() {}
 
     public String getVaultPath() {
         return vaultPath;

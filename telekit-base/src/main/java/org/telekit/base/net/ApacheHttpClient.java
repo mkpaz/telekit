@@ -281,7 +281,7 @@ public class ApacheHttpClient implements HttpClient {
 
                 // credentials is optional for proxy
                 UsernamePasswordCredentials cred = null;
-                if (params.credential() instanceof UsernamePasswordCredentials userPassword) {
+                if (params.credentials() instanceof UsernamePasswordCredentials userPassword) {
                     cred = userPassword;
                 }
 

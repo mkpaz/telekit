@@ -6,26 +6,25 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.telekit.base.BaseSetup;
 import org.telekit.base.domain.security.SecuredData;
-import org.telekit.base.preferences.internal.Security;
 import org.telekit.base.util.Mappers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(BaseSetup.class)
-public class SecurityTest {
+public class SecurityPreferencesTest {
 
     @Test
     void testSerialization() throws JsonProcessingException {
         String password = "qwerty";
 
         SecuredData dataOrig = SecuredData.fromString(password);
-        Security securityOrig = new Security();
+        SecurityPreferences securityOrig = new SecurityPreferences();
         securityOrig.setVaultPassword(dataOrig);
 
         YAMLMapper mapper = Mappers.createYamlMapper();
         String yaml = mapper.writeValueAsString(securityOrig);
 
-        Security securityDest = mapper.readValue(yaml, Security.class);
+        SecurityPreferences securityDest = mapper.readValue(yaml, SecurityPreferences.class);
         assertThat(securityDest.getVaultPassword().getData()).isEqualTo(dataOrig.getData());
     }
 }

@@ -20,25 +20,22 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.telekit.base.i18n.BaseMessages.MSG_INVALID_PARAM;
 import static org.telekit.base.i18n.I18n.t;
 
-@JsonTypeName("manual")
 public class ManualProxy extends ProxyBase {
 
     public static final String ID = "manual";
     public static final Set<Scheme> SUPPORTED_SCHEMES = Set.of(Scheme.HTTP);
 
     private final URI uri;
-    private final UsernamePasswordCredentials credential;
+    private final UsernamePasswordCredentials credentials;
     private final List<String> exceptions;
 
     @JsonCreator
-    public ManualProxy(boolean active,
-                       URI uri,
-                       UsernamePasswordCredentials credential,
-                       List<String> exceptions) {
-        super(ID, active);
+    public ManualProxy(URI uri, UsernamePasswordCredentials credentials, List<String> exceptions) {
+        super(/*ID*/);
 
+        this.id = ID;
         this.uri = uri;
-        this.credential = credential;
+        this.credentials = credentials;
         this.exceptions = defaultIfNull(exceptions, Collections.emptyList());
 
         Scheme scheme = getScheme();
@@ -57,16 +54,16 @@ public class ManualProxy extends ProxyBase {
 
     public URI getUri() { return uri; }
 
-    public UsernamePasswordCredentials getCredential() { return credential; }
+    public UsernamePasswordCredentials getCredentials() { return credentials; }
 
     public List<String> getExceptions() { return exceptions; }
 
     @Override
     public ConnectionParams getConnectionParams(String ipOrHostname) {
-        boolean shouldNotProxy = exceptions.stream().anyMatch(e -> Proxy.globMatch(e, ipOrHostname));
+        boolean shouldNotProxy = exceptions.stream().anyMatch(e -> Proxy.match(e, ipOrHostname));
         if (shouldNotProxy) { return null; }
 
-        return new BaseConnectionParams(getScheme(), getHost(), getPort(), credential);
+        return new BaseConnectionParams(getScheme(), getHost(), getPort(), credentials);
     }
 
     @JsonIgnore
@@ -84,7 +81,7 @@ public class ManualProxy extends ProxyBase {
                 "id=" + id +
                 ", active=" + active +
                 ", uri=" + uri +
-                ", credential=" + credential +
+                ", credential=" + credentials +
                 ", exceptions=" + exceptions +
                 '}';
     }
